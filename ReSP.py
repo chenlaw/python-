@@ -22,7 +22,7 @@ header = {
     "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
     "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/60.0.3112.90 Safari/537.36"
 }
-user_name = 'Rolling_egg'  # 国专局用户名
+user_name = '211_211'  # 国专局用户名
 pass_word = 'LWJsteve98'  # 国专局密码
 codeurl = 'http://www.pss-system.gov.cn/sipopublicsearch/portal/login-showPic.shtml'  # 国家专利局的网址
 targeturl = 'http://www.pss-system.gov.cn/sipopublicsearch/portal/uiIndex.shtml'  # 登录成功的url
@@ -256,11 +256,13 @@ def download_click_rar(browser, key):
     # -------waiting for success loading details--------
     # 该元素为 详情页面 加载完毕判断标志
     try:
-        element = WebDriverWait(browser, 20, 1, ignored_exceptions=None).until(
-            EC.presence_of_element_located(
-                (By.XPATH, '//*[@id="patent_list"]/li/div[3]/a[1]'))
-        )
-        element.click()
+        # element = WebDriverWait(browser, 20, 1, ignored_exceptions=None).until(
+        #     EC.presence_of_element_located(
+        #         (By.XPATH, '//*[@id="patent_list"]/li/div[3]/a[1]'))
+        # )
+        browser.implicitly_wait(20) #隐性等待，最长时间为20s
+        click_down_js = 'document.getElementsByClassName("btn patent-list-btn")[0].click()'
+        browser.execute_script(click_down_js)
         # ActionChains(browser).move_to_element(element).click().perform()  # 鼠标滚动至目标按钮并点击
     except selenium.common.exceptions.TimeoutException:
         print('TimeoutException')
@@ -418,18 +420,22 @@ def write_data_to_file(filename, data):
     file.close()
 
 
+def read_list_from_txt(file):
+    with open(file) as f:
+        return [str(x).strip() for x in f.readlines()]
+
+
 if __name__ == '__main__':
-    start_num = 2965 # 开始下载的下标
-    end_num = 3000  # 结束下载的下标
-    data = from_excel(file_path)
+    start_num = 430 # 开始下载的下标
+    end_num = 500 # 结束下载的下标
+    data = read_list_from_txt('new_re_down.txt')
     count = 0
     load_fail_list = []
     # # =====================设置默认下载路径=========================
     # options = webdriver.ChromeOptions()
     # prefs = {'profile.default_content_settings.popups': 0, 'download.default_directory': 'd:\\'}
     # options.add_experimental_option('prefs', prefs)
-    browser = webdriver.Chrome(
-        executable_path=webdriver_path)  # 注意改你安装插件的路径
+    browser = webdriver.Chrome(executable_path=webdriver_path)  # 注意改你安装插件的路径
     browser.get(targeturl)
     download_login(browser)  # 登陆
     # ====================测试代码=======================
@@ -439,10 +445,9 @@ if __name__ == '__main__':
     # print(download_click_detail(browser, 'CN201621287118'))
     # ====================测试代码=======================
     for num in range(start_num, end_num):
-        cnid = data[num][0]
-        key = change_str(str(cnid))
+        key = data[num]
         print('==================================')
-        print('dowanloading: ' + str(num))
+        print('downloading: ' + str(num)+ ' '+ key)
         try:
             if download_search(browser, key):  # 搜索
                 while True:  # 加载详情页面，若加载失败重新搜索
@@ -453,7 +458,7 @@ if __name__ == '__main__':
                         download_login(browser)
                         download_search(browser,key)
                     else: # 搜索结果为空，标记对应结果，并跳出外层循环
-                        write_data_to_file('no_result_list.txt', num)
+                        write_data_to_file('new_no_result_list.txt', key)
                         raise GetOutOfLoop() # 抛出自定义的跳出循环异常
                 if download_click_rar(browser, key):  # 点击下载按钮
                     print('SUCCESS')
@@ -462,8 +467,8 @@ if __name__ == '__main__':
                 browser = webdriver.Chrome(executable_path=webdriver_path)
                 browser.get(targeturl)
                 download_login(browser)  # 再次登陆
-                load_fail_list.append(num)
-                write_data_to_file('fail_list.txt', num)
+                load_fail_list.append(key)
+                write_data_to_file('fail_list.txt', key)
         except GetOutOfLoop:
             print('搜索结果为空')
             continue
@@ -474,7 +479,7 @@ if __name__ == '__main__':
             browser.get(targeturl)
             download_login(browser)  # 再次登陆
             load_fail_list.append(num)  # 下载失败的序号
-            write_data_to_file('fail_list.txt', num)
+            write_data_to_file('fail_list.txt', key)
             continue
         finally:
             time.sleep(2)
