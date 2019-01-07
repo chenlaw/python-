@@ -113,7 +113,6 @@ def validation_result():
 # ----------------------------------------------------------------------------------#
 def login():
     key = 'CN201610477192'  # 随意修改
-    session = requests.Session()  # 会话保持
     # ---------- ---登陆请求--------------------------#
     ##base64编码解码##
     base64Name = str(base64.b64encode(bytes(strName, encoding='utf-8')), 'utf-8')
@@ -125,7 +124,7 @@ def login():
         "j_username": base64Name,
         "j_password": base64Pass
     }
-
+    session = requests.Session()  # 会话保持
     valcode = session.get(codeUrl, headers=header)
     f = open('valcode.png', 'wb')
     f.write(valcode.content)
